@@ -9,6 +9,7 @@
 // Vars
 std::vector<domino> dominoList;
 std::vector<std::vector<domino>> listPerms;
+std::vector<std::vector<domino>> stateList;
 int start = -1;
 
 // Methods

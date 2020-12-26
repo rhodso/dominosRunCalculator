@@ -17,18 +17,18 @@ void printState(std::vector<domino> state) {
   debugger::log(s);
 }
 
-std::vector<std::vector<domino>> updateOutval(
-    std::vector<domino> _tmp, std::vector<std::vector<domino>> _outVal) {
-  _outVal.push_back(_tmp);
-
-  return _outVal;
-}
+void updateOutval(std::vector<domino> _tmp) { stateList.push_back(_tmp); }
 
 std::vector<domino> getListOfDoms(std::vector<domino> state,
-                                  std::vector<std::vector<domino>> outVal) {
+                                  std::vector<std::vector<domino>> _outVal) {
   // Fucking bullshit if this works
+  debugger::log("Curent dominos in state");
   for (domino d : state) {
-    d.setUsed(true);
+    for (domino dm : dominoList) {
+      if (dm.getID() == d.getID()) {
+        dm.setUsed(true);
+      }
+    }
   }
 
   // Get list of valid dominos we could add to current state
@@ -36,7 +36,21 @@ std::vector<domino> getListOfDoms(std::vector<domino> state,
   std::vector<domino> validDoms;
   debugger::log("***Starting gathering list of valid doms***");
 
+  std::vector<domino> tmpDominoList;
   for (domino d : dominoList) {
+    bool u = false;
+    for (domino dm : state) {
+      if (dm.getID() == d.getID()) {
+        u = true;
+        break;
+      }
+    }
+    if (!u) {
+      tmpDominoList.push_back(d);
+    }
+  }
+
+  for (domino d : tmpDominoList) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
     debugger::log("Testing domino with ID" + d.getID_S());
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -93,7 +107,6 @@ std::vector<domino> getListOfDoms(std::vector<domino> state,
 
       debugger::log("***New state created***");
       debugger::log("New state size is " + std::to_string(newState.size()));
-      std::vector<domino> dms;
 
       d.setUsed(true);  // TODO setUsed state isn't being updated
       newState.push_back(d);
@@ -103,8 +116,8 @@ std::vector<domino> getListOfDoms(std::vector<domino> state,
       printState(state);
 
       debugger::log("Starting getListOfDoms");
-      newState = getListOfDoms(newState, outVal);
-      outVal = updateOutval(newState, outVal);
+      newState = getListOfDoms(newState, _outVal);
+      updateOutval(newState);
 
       // Reset for next iteration
       // d.setUsed(false);
@@ -129,7 +142,7 @@ std::vector<std::vector<domino>> getListPerms(
     std::vector<domino> dms;
     state.push_back(domino(start, start));
     tmp = getListOfDoms(state, outVal);
-    outVal = updateOutval(tmp, outVal);
+    updateOutval(tmp);
     tmp.clear();  // Ensure that the temp state is cleared
   } else {
     debugger::log("Starter not set");
@@ -145,10 +158,6 @@ std::vector<std::vector<domino>> getListPerms(
     d.setUsed(true);
     state.push_back(d);
 
-    debugger::log("Let's just check that worked");
-    debugger::log(std::to_string(d.getUsed()));
-    debugger::log(std::to_string(state.back().getUsed()));
-
     debugger::log("Starting getListOfDoms");
 
     debugger::log("Current state is ");
@@ -156,7 +165,7 @@ std::vector<std::vector<domino>> getListPerms(
 
     tmp = getListOfDoms(state, outVal);
     debugger::log("Done, updating outVal");
-    outVal = updateOutval(tmp, outVal);
+    updateOutval(tmp);
     tmp.clear();  // Ensure that the temp state is cleared
 
     // Reset for next iteration
