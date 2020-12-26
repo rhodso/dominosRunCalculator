@@ -17,10 +17,12 @@ void printState(std::vector<domino> state) {
   debugger::log(s);
 }
 
-void updateOutval(std::vector<domino> _tmp) { stateList.push_back(_tmp); }
+void updateOutval(std::vector<domino> _tmp) {
+  stateList.push_back(_tmp);
+  debugger::log("Updated outval");
+}
 
-std::vector<domino> getListOfDoms(std::vector<domino> state,
-                                  std::vector<std::vector<domino>> _outVal) {
+std::vector<domino> getListOfDoms(std::vector<domino> state) {
   // Fucking bullshit if this works
   debugger::log("Curent dominos in state");
   for (domino d : state) {
@@ -91,18 +93,21 @@ std::vector<domino> getListOfDoms(std::vector<domino> state,
   if (validDoms.size() == 0) {  // No valid doms, add state to outVal and
                                 // finish with this permutation
     debugger::log("validDoms size is 0");
-    std::string s = "State is:";
+    debugger::log("State is:");
     printState(state);
+    updateOutval(state);
     return state;
-
   } else {  // At least one valid dom, save state here and pick one
     debugger::log("validDoms size is " + std::to_string(validDoms.size()));
+    int i = 1;
     for (domino d : validDoms) {
+      debugger::log("i = " + std::to_string(i));
+      i++;
       debugger::log("Starting with domino " + d.getID_S());
       std::vector<domino> newState;  // dupe state here
 
-      for (domino d : state) {
-        newState.push_back(d);
+      for (domino dm : state) {
+        newState.push_back(dm);
       }
 
       debugger::log("***New state created***");
@@ -116,13 +121,15 @@ std::vector<domino> getListOfDoms(std::vector<domino> state,
       printState(state);
 
       debugger::log("Starting getListOfDoms");
-      newState = getListOfDoms(newState, _outVal);
-      updateOutval(newState);
-
-      // Reset for next iteration
-      // d.setUsed(false);
+      newState = getListOfDoms(newState);
+      debugger::log("Next i is " + std::to_string(i));
+      newState.clear();
+      debugger::log("Moving to next state inside getListOfDoms");
     }
+    validDoms.clear();
+    debugger::log("Done with this state branching");
   }
+  return state;
 }
 
 std::vector<std::vector<domino>> getListPerms(
@@ -141,7 +148,7 @@ std::vector<std::vector<domino>> getListPerms(
     std::vector<domino> state;
     std::vector<domino> dms;
     state.push_back(domino(start, start));
-    tmp = getListOfDoms(state, outVal);
+    tmp = getListOfDoms(state);
     updateOutval(tmp);
     tmp.clear();  // Ensure that the temp state is cleared
   } else {
@@ -163,7 +170,7 @@ std::vector<std::vector<domino>> getListPerms(
     debugger::log("Current state is ");
     printState(state);
 
-    tmp = getListOfDoms(state, outVal);
+    tmp = getListOfDoms(state);
     debugger::log("Done, updating outVal");
     updateOutval(tmp);
     tmp.clear();  // Ensure that the temp state is cleared
@@ -181,7 +188,7 @@ int main() {
 
   debugger::setDebug(true);
 
-  debugger::logIgnore("Starting...");
+  debugger::log("Starting...");
 
   // Set starter
   // start = 12; //Starter is double 12
@@ -209,18 +216,10 @@ int main() {
   listPerms = getListPerms(dominoList);
 
   debugger::log("Done generating");
-  debugger::log(std::to_string(listPerms.size()));
+  debugger::log(std::to_string(stateList.size()));
 
-  for (std::vector<domino> v : listPerms) {
-    std::string s = "";
-    for (domino d : v) {
-      s += d.to_string() + " , ";
-    }
-    if (!s.empty()) {
-      s.pop_back();
-      s.pop_back();
-    }
-    debugger::log(s);
+  for (std::vector<domino> v : stateList) {
+    printState(v);
   }
 
   // Done?
