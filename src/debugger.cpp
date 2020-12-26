@@ -64,3 +64,18 @@ void debugger::logErr(std::string msg) {
   // But this time to cerr for errors
   std::cerr << timeStr << " " << msg << std::endl;
 }
+
+void debugger::p(std::string msg) {
+  // Just print out message as message, no time needed
+  std::cout << msg << std::endl;
+}
+
+std::string debugger::getExecTime_S() {
+  return std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(
+                            std::chrono::system_clock::now() -
+                            std::chrono::system_clock::from_time_t(initTime))
+                            .count() /
+                        1000.0f);
+}
+
+double debugger::getExecTime() { return std::stod(getExecTime_S(), 0); }

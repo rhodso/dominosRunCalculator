@@ -17,8 +17,22 @@ void printState(std::vector<domino> state) {
   debugger::log(s);
 }
 
+void printStateIgnore(std::vector<domino> state) {
+  std::string s = "";
+  for (domino d : state) {
+    s = s + d.to_string() + " , ";
+  }
+  if (!s.empty()) {
+    s.pop_back();
+    s.pop_back();
+    s.pop_back();
+  }
+  debugger::p(s);
+}
+
 void updateOutval(std::vector<domino> _tmp) {
   stateList.push_back(_tmp);
+  printStateIgnore(_tmp);
   debugger::log("Updated outval");
 }
 
@@ -145,12 +159,26 @@ std::vector<std::vector<domino>> getListPerms(
   if (start != -1) {
     debugger::log("Starter is set");
     // Starter is set, will try that first
+    domino d = domino(start, start);
+    debugger::log("Started with domino " + d.getID_S());
+    // Create a state and push it to the back
     std::vector<domino> state;
+    debugger::log("Created blank state");
     std::vector<domino> dms;
-    state.push_back(domino(start, start));
+
+    d.setUsed(true);
+    state.push_back(d);
+
+    debugger::log("Starting getListOfDoms");
+
+    debugger::log("Current state is ");
+    printState(state);
+
     tmp = getListOfDoms(state);
-    updateOutval(tmp);
     tmp.clear();  // Ensure that the temp state is cleared
+
+    // Reset for next iteration
+    // d.setUsed(false);
   } else {
     debugger::log("Starter not set");
   }
@@ -171,8 +199,7 @@ std::vector<std::vector<domino>> getListPerms(
     printState(state);
 
     tmp = getListOfDoms(state);
-    debugger::log("Done, updating outVal");
-    updateOutval(tmp);
+
     tmp.clear();  // Ensure that the temp state is cleared
 
     // Reset for next iteration
@@ -186,12 +213,12 @@ int main() {
   // Seed RNG
   srand(time(0));
 
-  debugger::setDebug(true);
+  debugger::setDebug(false);
 
-  debugger::log("Starting...");
+  debugger::p("Starting...");
 
   // Set starter
-  // start = 12; //Starter is double 12
+  start = 12;  // Starter is double 12
 
   // Create list of 10 dominos
   for (int i = 0; i < 10; i++) {
@@ -200,7 +227,7 @@ int main() {
   }
 
   // Output dominos
-  std::string s = "";
+  std::string s = "Dominos list is:\n";
   for (domino d : dominoList) {
     s += d.to_string() + " , ";
   }
@@ -208,18 +235,72 @@ int main() {
     s.pop_back();
     s.pop_back();
   }
-  debugger::log(s);
+  debugger::p(s);
 
   debugger::log("dominoList size is " + std::to_string(dominoList.size()));
 
-  debugger::log("Starting generation");
+  debugger::p("Calculating...");
   listPerms = getListPerms(dominoList);
 
-  debugger::log("Done generating");
-  debugger::log(std::to_string(stateList.size()));
+  debugger::log("Done");
+  debugger::p("Took " + debugger::getExecTime_S() + "s");
 
-  for (std::vector<domino> v : stateList) {
-    printState(v);
+  debugger::p("Finding best possible move....");
+  std::vector<int> value;
+  std::vector<int> trueValue;
+
+  for (std::vector<domino> run : stateList) {
+    int val = 0;
+    int tVal = 0;
+
+    for (domino d : run) {
+      tVal += d.getTopNum();
+      tVal += d.getBtmNum();
+    }
+    trueValue.push_back(tVal);
+
+    if (start != -1) {
+      if (run.front().getTopNum() == start) {
+        // Give bonus 100 pts if it starts with the correct thing
+        val = 100;
+      }
+    }
+
+    // Add values
+    val += tVal;
+    value.push_back(val);
+  }
+
+  // Find best
+  int max = 0;
+  int idx = 0;
+
+  int max_t = 0;
+  int idx_t = 0;
+
+  // Find value and index of highest score
+  for (int i = 0; i < value.size(); i++) {
+    if (value[i] > max) {
+      max = value[i];
+      idx = i;
+    }
+  }
+
+  // Find value and index of highest true score
+  for (int i = 0; i < trueValue.size(); i++) {
+    if (trueValue[i] > max_t) {
+      max_t = trueValue[i];
+      idx_t = i;
+    }
+  }
+
+  debugger::p("Highest score that starts with the starter is: " +
+              std::to_string(max));
+  printStateIgnore(stateList[idx]);
+
+  if (idx != idx_t) {
+    debugger::p("Highest score is: " + std::to_string(max_t));
+    printStateIgnore(stateList[idx_t]);
   }
 
   // Done?
