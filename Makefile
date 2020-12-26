@@ -1,5 +1,5 @@
 drc : obj/domino.o obj/main.o obj/debugger.o
-	g++ -o drc obj/domino.o obj/main.o obj/debugger.o
+	g++ -o drc obj/domino.o obj/main.o obj/debugger.o -pthread
 
 obj/domino.o :
 	g++ -c src/domino.cpp -I headers -o obj/domino.o

@@ -31,12 +31,14 @@ void printStateIgnore(std::vector<domino> state) {
 }
 
 void updateOutval(std::vector<domino> _tmp) {
+  mtx.lock();
   stateList.push_back(_tmp);
   printStateIgnore(_tmp);
   debugger::log("Updated outval");
+  mtx.unlock();
 }
 
-std::vector<domino> getListOfDoms(std::vector<domino> state) {
+void getListOfDoms(std::vector<domino> state) {
   // Fucking bullshit if this works
   debugger::log("Curent dominos in state");
   for (domino d : state) {
@@ -110,7 +112,6 @@ std::vector<domino> getListOfDoms(std::vector<domino> state) {
     debugger::log("State is:");
     printState(state);
     updateOutval(state);
-    return state;
   } else {  // At least one valid dom, save state here and pick one
     debugger::log("validDoms size is " + std::to_string(validDoms.size()));
     int i = 1;
@@ -135,7 +136,7 @@ std::vector<domino> getListOfDoms(std::vector<domino> state) {
       printState(state);
 
       debugger::log("Starting getListOfDoms");
-      newState = getListOfDoms(newState);
+      getListOfDoms(newState);
       debugger::log("Next i is " + std::to_string(i));
       newState.clear();
       debugger::log("Moving to next state inside getListOfDoms");
@@ -143,7 +144,6 @@ std::vector<domino> getListOfDoms(std::vector<domino> state) {
     validDoms.clear();
     debugger::log("Done with this state branching");
   }
-  return state;
 }
 
 std::vector<std::vector<domino>> getListPerms(
@@ -151,6 +151,8 @@ std::vector<std::vector<domino>> getListPerms(
   // List
   std::vector<std::vector<domino>> outVal;
   std::vector<domino> tmp;
+
+  std::vector<std::thread> threadList;
 
   debugger::log("dominoList size is " + std::to_string(dominoList.size()));
 
@@ -174,7 +176,8 @@ std::vector<std::vector<domino>> getListPerms(
     debugger::log("Current state is ");
     printState(state);
 
-    tmp = getListOfDoms(state);
+    threadList.push_back(std::thread(getListOfDoms, state));
+    // getListOfDoms(state);
     tmp.clear();  // Ensure that the temp state is cleared
 
     // Reset for next iteration
@@ -198,12 +201,18 @@ std::vector<std::vector<domino>> getListPerms(
     debugger::log("Current state is ");
     printState(state);
 
-    tmp = getListOfDoms(state);
+    threadList.push_back(std::thread(getListOfDoms, state));
+    // getListOfDoms(state);
 
     tmp.clear();  // Ensure that the temp state is cleared
 
     // Reset for next iteration
     // d.setUsed(false);
+  }
+
+  // Ensure all threads have finished
+  for (auto& t : threadList) {
+    t.join();
   }
 
   return outVal;
@@ -295,7 +304,7 @@ int main() {
   }
 
   debugger::p("Highest score that starts with the starter is: " +
-              std::to_string(max));
+              std::to_string(max_t));
   printStateIgnore(stateList[idx]);
 
   if (idx != idx_t) {

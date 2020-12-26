@@ -3,7 +3,7 @@
     "tasks": [
         {
             "label": "rebuild",
-            "command": "make clean && make",
+            "command": "pwd && make clean && make",
             "type": "shell"
         }
     ]
