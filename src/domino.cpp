@@ -4,14 +4,7 @@
 #include <domino.h>
 
 // Constructor and Destructor
-domino::domino() {
-  ID = count;
-  debugger::log("Created domino with ID " + std::to_string(ID));
-  debugger::log("Domino is " + this->to_string());
-  count++;
-  used = false;
-  flipped = false;
-}
+domino::domino() {}
 domino::domino(int _topNum, int _btmNum) {
   topNum = _topNum;
   btmNum = _btmNum;
@@ -20,31 +13,14 @@ domino::~domino() {}
 
 // Getters and Setters
 int domino::getTopNum() {
-  if (flipped) {
-    return btmNum;
-  } else {
-    return topNum;
-  }
+  return topNum;  
 }
 int domino::getBtmNum() {
-  if (!flipped) {
-    return btmNum;
-  } else {
-    return topNum;
-  }
+  return btmNum;
 }
-bool domino::getUsed() { return used; }
-int domino::getID() { return ID; }
-std::string domino::getID_S() {
-  std::string s = std::to_string(this->ID) + " (" + this->to_string() + ")";
-  return s;
-}
-bool domino::getFlipped() { return flipped; }
 
 void domino::setTopNum(int _topNum) { topNum = _topNum; }
 void domino::setBtmNum(int _btmNum) { btmNum = _btmNum; }
-void domino::setUsed(bool _used) { used = _used; }
-void domino::setFlipped(bool _flipped) { flipped = _flipped; }
 
 // Other methods
 domino domino::generateDomino() {
@@ -68,14 +44,20 @@ std::string domino::to_string() {
   }
 
   // Add seperator
-  s += " | ";
+  s += "|";
 
   // If the number is < 10, then add a space to the front so it's aligned
   // correctly
-  if (this->getBtmNum() < 10) {
-    s += " " + std::to_string(this->getBtmNum());
-  } else {
-    s += std::to_string(this->getBtmNum());
-  }
+  s += std::to_string(this->getBtmNum());
   return s;
+}
+
+void domino::flip(){
+  int tmp = btmNum;
+  btmNum = topNum;
+  topNum = tmp;
+}
+
+int domino::getScore(){
+  return topNum + btmNum;
 }

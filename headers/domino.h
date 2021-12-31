@@ -19,36 +19,19 @@ class domino {
   // Getters and Setters
   int getTopNum();
   int getBtmNum();
-  bool getUsed();
-  int getID();
-  std::string getID_S();
-  bool getFlipped();
 
   void setTopNum(int _topNum);
   void setBtmNum(int _btmNum);
-  void setUsed(bool _used);
-  void setFlipped(bool _flipped);
 
   // Other methods
   static domino generateDomino();
   std::string to_string();
-
-  // Overloading <
-  bool operator<(domino& rhs) {
-    if (ID == rhs.getID()) {
-      return ID < rhs.getID();
-    } else {
-      return ID < rhs.getID();
-    }
-  }
+  void flip();
+  int getScore();
 
  private:
   // Variables
   int topNum;
   int btmNum;
-  bool used;
-  bool flipped;
-  int ID;
-  inline static int count = 0;
 };
 #endif

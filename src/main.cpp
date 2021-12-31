@@ -3,219 +3,111 @@
 #include <algorithm>
 #include <iostream>
 #include <thread>
+#include <sstream>
 
-void printState(std::vector<domino> state) {
-  std::string s = "";
-  for (domino d : state) {
-    s = s + d.to_string() + " , ";
+std::string getStringList(std::vector<domino> _lst){
+  std::string outStr = "";
+  for(domino d : _lst){
+    outStr += d.to_string() + " ";
   }
-  if (!s.empty()) {
-    s.pop_back();
-    s.pop_back();
-    s.pop_back();
-  }
-  debugger::log(s);
+  return outStr;
 }
 
-void printStateIgnore(std::vector<domino> state) {
-  std::string s = "";
-  for (domino d : state) {
-    s = s + d.to_string() + " , ";
+int getListScore(std::vector<domino> _lst){
+  int sum = 0;
+  for(domino d : _lst){
+    sum += d.getScore();
   }
-  if (!s.empty()) {
-    s.pop_back();
-    s.pop_back();
-    s.pop_back();
-  }
-  debugger::p(s);
+  return sum;
 }
 
-void updateOutval(std::vector<domino> _tmp) {
-  mtx.lock();
-  stateList.push_back(_tmp);
-  printStateIgnore(_tmp);
-  debugger::log("Updated outval");
-  mtx.unlock();
-}
-
-void getListOfDoms(std::vector<domino> state) {
-  // Fucking bullshit if this works
-  debugger::log("Curent dominos in state");
-  for (domino d : state) {
-    for (domino dm : dominoList) {
-      if (dm.getID() == d.getID()) {
-        dm.setUsed(true);
-      }
+bool compareDom(domino d1, domino d2){
+  //Check for match when unflipped
+  if(d1.getTopNum() == d2.getTopNum()){
+    if(d1.getBtmNum() == d2.getBtmNum()){
+      return true;
     }
   }
 
-  // Get list of valid dominos we could add to current state
-  domino back = state.back();
-  std::vector<domino> validDoms;
-  debugger::log("***Starting gathering list of valid doms***");
+  //Flip D1 and turn it into d3
+  domino d3 = d1;
+  d3.flip();
 
-  std::vector<domino> tmpDominoList;
-  for (domino d : dominoList) {
-    bool u = false;
-    for (domino dm : state) {
-      if (dm.getID() == d.getID()) {
-        u = true;
+  //Compare against d2
+  if(d3.getTopNum() == d2.getTopNum()){
+    if(d3.getBtmNum() == d2.getBtmNum()){
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void getPermutation(std::vector<domino> _current, std::vector<domino> _available, int _starter){
+  debugger::log("Entered getPermutation");
+  debugger::log("Current is" + getStringList(_current));
+  debugger::log("Available is" + getStringList(_available));
+  debugger::log("Starter is " + std::to_string(_starter));
+
+  //Get a list of dominos that can fit
+  std::vector<domino> canFit = {};
+  for(domino d : _available){
+    if(d.getTopNum() == _starter){
+      canFit.push_back(d);
+    }
+    if(d.getBtmNum() == _starter){
+      d.flip();
+      canFit.push_back(d);
+    }
+  }
+  
+  debugger::log("canFit size is " + std::to_string(canFit.size()));
+
+  //Determine next action based on size of list
+  if(canFit.size() == 0){
+    debugger::log("No dominos will fit, adding finished permutation to list");
+    listPerms.push_back(_current);
+  } else {
+    debugger::log("At least 1 domino will fit, calculating full permutation");
+    //For each domino in canFit
+    for(domino d : canFit){
+
+      //Create new vectors
+      std::vector<domino> newAvailable = {};
+      std::vector<domino> newCurrent = _current;
+
+      //Copy the current available dominos apart from the one we're currently using
+      for(domino dom : _available){
+        if(!compareDom(d, dom)){
+          newAvailable.push_back(dom);
+        }
+      }
+
+      //Add the current domino to _current
+      newCurrent.push_back(d);
+
+      debugger::log("Everything set up, starting to calculate next permutation...\n");
+      getPermutation(newCurrent, newAvailable, d.getBtmNum());
+    }
+  }
+}
+
+std::vector<domino> checkDupeDoms(std::vector<domino> _dominoList){
+  std::vector<domino> noDupes = {};
+  for(domino d : _dominoList){
+    bool isDupe = false;
+    for(domino dom : noDupes){
+      if(compareDom(dom, d)){
+        isDupe = true;
         break;
       }
     }
-    if (!u) {
-      tmpDominoList.push_back(d);
+    if(!isDupe){
+      noDupes.push_back(d);
     }
   }
 
-  for (domino d : tmpDominoList) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    debugger::log("Testing domino with ID" + d.getID_S());
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    debugger::log("DominoUsed for this dom is " + std::to_string(d.getUsed()));
-
-    if (d.getID() == back.getID()) {
-      // Dom is invalid because it's this dom
-      debugger::log(
-          "Dom is invalid due to it being the same dom we're testing");
-    } else if (d.getUsed()) {
-      // Dom is invalid
-      debugger::log("Dom is invalid due to already being used in this state");
-    } else {
-      if ((d.getBtmNum() == back.getBtmNum()) ||
-          (d.getTopNum() == back.getBtmNum())) {
-        // Dom is valid
-
-        // Determine if the dom is flipped or not
-        if (d.getTopNum() == back.getBtmNum()) {
-          d.setFlipped(false);
-        } else {
-          d.setFlipped(true);
-        }
-
-        debugger::log("Dom is valid, pushing to back");
-        validDoms.push_back(d);
-
-      } else {
-        // Dom is invalid
-        debugger::log("Dom is invalid due to spots mismatch");
-      }
-    }
-  }
-
-  debugger::log("***Finished getting list of valid doms***");
-  debugger::log("ValidDomSize is " + std::to_string(validDoms.size()));
-
-  if (validDoms.size() == 0) {  // No valid doms, add state to outVal and
-                                // finish with this permutation
-    debugger::log("validDoms size is 0");
-    debugger::log("State is:");
-    printState(state);
-    updateOutval(state);
-  } else {  // At least one valid dom, save state here and pick one
-    debugger::log("validDoms size is " + std::to_string(validDoms.size()));
-    int i = 1;
-    for (domino d : validDoms) {
-      debugger::log("i = " + std::to_string(i));
-      i++;
-      debugger::log("Starting with domino " + d.getID_S());
-      std::vector<domino> newState;  // dupe state here
-
-      for (domino dm : state) {
-        newState.push_back(dm);
-      }
-
-      debugger::log("***New state created***");
-      debugger::log("New state size is " + std::to_string(newState.size()));
-
-      d.setUsed(true);  // TODO setUsed state isn't being updated
-      newState.push_back(d);
-
-      // Newstate created, list
-      debugger::log("new state is:");
-      printState(state);
-
-      debugger::log("Starting getListOfDoms");
-      getListOfDoms(newState);
-      debugger::log("Next i is " + std::to_string(i));
-      newState.clear();
-      debugger::log("Moving to next state inside getListOfDoms");
-    }
-    validDoms.clear();
-    debugger::log("Done with this state branching");
-  }
-}
-
-std::vector<std::vector<domino>> getListPerms(
-    std::vector<domino>& _dominoList) {
-  // List
-  std::vector<std::vector<domino>> outVal;
-  std::vector<domino> tmp;
-
-  std::vector<std::thread> threadList;
-
-  debugger::log("dominoList size is " + std::to_string(dominoList.size()));
-
-  // Currently, list is empty (blank state)
-  // Start recursion
-  if (start != -1) {
-    debugger::log("Starter is set");
-    // Starter is set, will try that first
-    domino d = domino(start, start);
-    debugger::log("Started with domino " + d.getID_S());
-    // Create a state and push it to the back
-    std::vector<domino> state;
-    debugger::log("Created blank state");
-    std::vector<domino> dms;
-
-    d.setUsed(true);
-    state.push_back(d);
-
-    debugger::log("Starting getListOfDoms");
-
-    debugger::log("Current state is ");
-    printState(state);
-
-    threadList.push_back(std::thread(getListOfDoms, state));
-    // getListOfDoms(state);
-    tmp.clear();  // Ensure that the temp state is cleared
-
-    // Reset for next iteration
-    // d.setUsed(false);
-  } else {
-    debugger::log("Starter not set");
-  }
-
-  for (domino d : dominoList) {
-    debugger::log("Started with domino " + d.getID_S());
-    // Create a state and push it to the back
-    std::vector<domino> state;
-    debugger::log("Created blank state");
-    std::vector<domino> dms;
-
-    d.setUsed(true);
-    state.push_back(d);
-
-    debugger::log("Starting getListOfDoms");
-
-    debugger::log("Current state is ");
-    printState(state);
-
-    threadList.push_back(std::thread(getListOfDoms, state));
-    // getListOfDoms(state);
-
-    tmp.clear();  // Ensure that the temp state is cleared
-
-    // Reset for next iteration
-    // d.setUsed(false);
-  }
-
-  // Ensure all threads have finished
-  for (auto& t : threadList) {
-    t.join();
-  }
-
-  return outVal;
+  return noDupes;
 }
 
 int main() {
@@ -226,91 +118,137 @@ int main() {
 
   debugger::p("Starting...");
 
-  // Set starter
-  start = 12;  // Starter is double 12
+  if(debugger::getDebug()){
+    //Set list of dominos
 
-  // Create list of 10 dominos
-  for (int i = 0; i < 10; i++) {
-    domino d = domino::generateDomino();
-    dominoList.push_back(d);
-  }
+    dominoList.push_back(domino(2,1));
+    dominoList.push_back(domino(2,2));
+    dominoList.push_back(domino(2,3));
+    dominoList.push_back(domino(3,4));
+    dominoList.push_back(domino(4,5));
+    dominoList.push_back(domino(5,6));
 
-  // Output dominos
-  std::string s = "Dominos list is:\n";
-  for (domino d : dominoList) {
-    s += d.to_string() + " , ";
-  }
-  if (!s.empty()) {
-    s.pop_back();
-    s.pop_back();
-  }
-  debugger::p(s);
+    //Set starter
+    // Set starter
+    start = 12;  // Starter is double 1
 
-  debugger::log("dominoList size is " + std::to_string(dominoList.size()));
+  }else{
+    debugger::p("Enter dominos in the format \"x x\" or enter nothing to continue:");
+    while(true){
+      debugger::setDebug(false);
+      debugger::log("Getting input for new domino");
+      std::string dom;
+      std::getline(std::cin, dom);
+      debugger::log("Read \"" + dom + "\"");
+      if(dom == ""){
+        if(dominoList.size() < 1){
+          debugger::p("No dominos entered, quitting");
+          return 0;
+        } else {
+          break;
+        }
+      } else {
+        debugger::log("Creating vars");
+        //Split string into parts
+        std::vector<std::string> parts;
+        const std::string& dm = dom;
+        std::istringstream iss(dom);
 
-  debugger::p("Calculating...");
-  listPerms = getListPerms(dominoList);
+        debugger::log("Splitting string");
+        for(std::string s; iss >> s; ){
+          debugger::log("Added " + s);
+          parts.push_back(s);
+        }
 
-  debugger::log("Done");
-  debugger::p("Took " + debugger::getExecTime_S() + "s");
+        debugger::log("Done splitting string");
 
-  debugger::p("Finding best possible move....");
-  std::vector<int> value;
-  std::vector<int> trueValue;
+        //Get parts
+        int top;
+        int btm;
+        debugger::log("Getting parts");
+        for(std::string s : parts){
+          debugger::log(s + " ");
+        }
+        try{
+          top = std::stoi(parts[0]);
+          btm = std::stoi(parts[1]);
+          debugger::log("Split string");
+        } catch(const std::exception& e){
+          debugger::p("Error parsing domino: " + dom);
+        }
 
-  for (std::vector<domino> run : stateList) {
-    int val = 0;
-    int tVal = 0;
-
-    for (domino d : run) {
-      tVal += d.getTopNum();
-      tVal += d.getBtmNum();
-    }
-    trueValue.push_back(tVal);
-
-    if (start != -1) {
-      if (run.front().getTopNum() == start) {
-        // Give bonus 100 pts if it starts with the correct thing
-        val = 100;
+        debugger::log("Creating domino");
+        //Create domino
+        domino d = domino(top, btm);
+        dominoList.push_back(d);
       }
     }
 
-    // Add values
-    val += tVal;
-    value.push_back(val);
+    //Get starter
+    debugger::p("Enter starter:");
+    std::string starterDoubleDom;
+    std::getline(std::cin, starterDoubleDom); 
+    start = std::stoi(starterDoubleDom);
+
+    debugger::p("Checking for duplicate dominos");
+    dominoList = checkDupeDoms(dominoList);
+
+    debugger::p("Calculating...");
   }
 
-  // Find best
-  int max = 0;
-  int idx = 0;
+  //Do the calculations
+  std::vector<domino> blank = {};
+  getPermutation(blank, dominoList, start);
+  std::cout << std::endl;
+  
+  //Do some more calculations if we can't find one to match the starter
+  if(listPerms[0].size() == 0){
+    //No valid routes found from given starter
+    debugger::p("No valid routes found from given starter, will try and find permutation from available dominos");
+    for(domino d : dominoList){
+      //Create new vectors
+      std::vector<domino> newAvailable = {};
+      std::vector<domino> newCurrent = {d};
 
-  int max_t = 0;
-  int idx_t = 0;
+      //Copy the current available dominos apart from the one we're currently using
+      for(domino dom : dominoList){
+        if(!compareDom(d, dom)){
+          newAvailable.push_back(dom);
+        }
+      }
 
-  // Find value and index of highest score
-  for (int i = 0; i < value.size(); i++) {
-    if (value[i] > max) {
-      max = value[i];
-      idx = i;
+      //Get the permutations
+      getPermutation(newCurrent, newAvailable, d.getBtmNum());
+      d.flip();
+      getPermutation(newCurrent, newAvailable, d.getBtmNum());
+
     }
   }
 
-  // Find value and index of highest true score
-  for (int i = 0; i < trueValue.size(); i++) {
-    if (trueValue[i] > max_t) {
-      max_t = trueValue[i];
-      idx_t = i;
+  //If literally nothing fits
+  if(listPerms.size() == 0){
+    debugger::p("Could not find any permutations or anything that matched. Good luck!");
+    return 0;
+  }
+
+  //List found permutations
+  debugger::p("Listing permutations:");
+  int i = 0;
+  for(std::vector<domino> dList : listPerms){
+    debugger::p("P" + std::to_string(i) + ", Score " + std::to_string(getListScore(dList)) + ", Order: " + getStringList(dList));
+    i++;
+  }  
+  
+  //Find best permutation
+  debugger::p("Finding best permutation:");
+  std::vector<domino> bestPerm = {};
+  for(std::vector<domino> p : listPerms){
+    if(getListScore(bestPerm) < getListScore(p)){
+      bestPerm = p;
     }
   }
 
-  debugger::p("Highest score that starts with the starter is: " +
-              std::to_string(max_t));
-  printStateIgnore(stateList[idx]);
-
-  if (idx != idx_t) {
-    debugger::p("Highest score is: " + std::to_string(max_t));
-    printStateIgnore(stateList[idx_t]);
-  }
-
-  // Done?
+  //Print out
+  debugger::p("Best permutation has score " + std::to_string(getListScore(bestPerm)) + ", and has order: " + getStringList(bestPerm));
+  return 0;
 }
