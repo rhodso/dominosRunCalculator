@@ -118,83 +118,82 @@ int main() {
 
   debugger::p("Starting...");
 
-  if(debugger::getDebug()){
-    //Set list of dominos
+  debugger::p("Enter dominos in the format \"x x\" or enter nothing to continue:");
 
-    dominoList.push_back(domino(2,1));
-    dominoList.push_back(domino(2,2));
-    dominoList.push_back(domino(2,3));
-    dominoList.push_back(domino(3,4));
-    dominoList.push_back(domino(4,5));
-    dominoList.push_back(domino(5,6));
+  bool isFirst = true;
 
-    //Set starter
-    // Set starter
-    start = 12;  // Starter is double 1
+  while(true){
+    debugger::log("Getting input for new domino");
+    std::string dom;
+    std::getline(std::cin, dom);
 
-  }else{
-    debugger::p("Enter dominos in the format \"x x\" or enter nothing to continue:");
-    while(true){
-      debugger::setDebug(false);
-      debugger::log("Getting input for new domino");
-      std::string dom;
-      std::getline(std::cin, dom);
-      debugger::log("Read \"" + dom + "\"");
-      if(dom == ""){
-        if(dominoList.size() < 1){
-          debugger::p("No dominos entered, quitting");
-          return 0;
-        } else {
-          break;
-        }
-      } else {
-        debugger::log("Creating vars");
-        //Split string into parts
-        std::vector<std::string> parts;
-        const std::string& dm = dom;
-        std::istringstream iss(dom);
-
-        debugger::log("Splitting string");
-        for(std::string s; iss >> s; ){
-          debugger::log("Added " + s);
-          parts.push_back(s);
-        }
-
-        debugger::log("Done splitting string");
-
-        //Get parts
-        int top;
-        int btm;
-        debugger::log("Getting parts");
-        for(std::string s : parts){
-          debugger::log(s + " ");
-        }
-        try{
-          top = std::stoi(parts[0]);
-          btm = std::stoi(parts[1]);
-          debugger::log("Split string");
-        } catch(const std::exception& e){
-          debugger::p("Error parsing domino: " + dom);
-        }
-
-        debugger::log("Creating domino");
-        //Create domino
-        domino d = domino(top, btm);
+    // Check if the line is just 'r' and it's the first domino
+    if(dom == "r" && isFirst){
+      // Generate 12 random dominos, add them to the list, and continue
+      for(int i = 0; i < 12; i++){
+        domino d = domino::generateDomino();
         dominoList.push_back(d);
+        debugger::p("Added " + d.to_string());
       }
+
+      continue;
     }
 
-    //Get starter
-    debugger::p("Enter starter:");
-    std::string starterDoubleDom;
-    std::getline(std::cin, starterDoubleDom); 
-    start = std::stoi(starterDoubleDom);
+    debugger::log("Read \"" + dom + "\"");
+    if(dom == ""){
+      if(dominoList.size() < 1){
+        debugger::p("No dominos entered, quitting");
+        return 0;
+      } else {
+        break;
+      }
+    } else {
+      debugger::log("Creating vars");
+      //Split string into parts
+      std::vector<std::string> parts;
+      const std::string& dm = dom;
+      std::istringstream iss(dom);
 
-    debugger::p("Checking for duplicate dominos");
-    dominoList = checkDupeDoms(dominoList);
+      debugger::log("Splitting string");
+      for(std::string s; iss >> s; ){
+        debugger::log("Added " + s);
+        parts.push_back(s);
+      }
 
-    debugger::p("Calculating...");
+      debugger::log("Done splitting string");
+
+      //Get parts
+      int top;
+      int btm;
+      debugger::log("Getting parts");
+      for(std::string s : parts){
+        debugger::log(s + " ");
+      }
+      try{
+        top = std::stoi(parts[0]);
+        btm = std::stoi(parts[1]);
+        debugger::log("Split string");
+      } catch(const std::exception& e){
+        debugger::p("Error parsing domino: " + dom);
+      }
+
+      debugger::log("Creating domino");
+      //Create domino
+      domino d = domino(top, btm);
+      dominoList.push_back(d);
+    }
   }
+
+  //Get starter
+  debugger::p("Enter starter:");
+  std::string starterDoubleDom;
+  std::getline(std::cin, starterDoubleDom); 
+  start = std::stoi(starterDoubleDom);
+
+  debugger::p("Checking for duplicate dominos");
+  dominoList = checkDupeDoms(dominoList);
+
+  debugger::p("Calculating...");
 
   //Do the calculations
   std::vector<domino> blank = {};
