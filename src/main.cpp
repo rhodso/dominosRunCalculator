@@ -6,6 +6,7 @@
 #include <sstream>
 
 std::string getStringList(std::vector<domino> _lst){
+  // Convert a list of dominos to a string
   std::string outStr = "";
   for(domino d : _lst){
     outStr += d.to_string() + " ";
@@ -14,6 +15,7 @@ std::string getStringList(std::vector<domino> _lst){
 }
 
 int getListScore(std::vector<domino> _lst){
+  // Get the score of dominos played from a list
   int sum = 0;
   for(domino d : _lst){
     sum += d.getScore();
@@ -29,13 +31,9 @@ bool compareDom(domino d1, domino d2){
     }
   }
 
-  //Flip D1 and turn it into d3
-  domino d3 = d1;
-  d3.flip();
-
-  //Compare against d2
-  if(d3.getTopNum() == d2.getTopNum()){
-    if(d3.getBtmNum() == d2.getBtmNum()){
+  //Compare against d2, but inverted
+  if(d1.getBtmNum() == d2.getTopNum()){
+    if(d1.getTopNum() == d2.getBtmNum()){
       return true;
     }
   }
@@ -44,6 +42,7 @@ bool compareDom(domino d1, domino d2){
 }
 
 void getPermutation(std::vector<domino> _current, std::vector<domino> _available, int _starter){
+  // Debug info
   debugger::log("Entered getPermutation");
   debugger::log("Current is" + getStringList(_current));
   debugger::log("Available is" + getStringList(_available));
@@ -93,16 +92,21 @@ void getPermutation(std::vector<domino> _current, std::vector<domino> _available
 }
 
 std::vector<domino> checkDupeDoms(std::vector<domino> _dominoList){
+  // Create an emptty list
   std::vector<domino> noDupes = {};
+
+  // For each domino in the list, check if it's a dupe
   for(domino d : _dominoList){
     bool isDupe = false;
     for(domino dom : noDupes){
+      // If it is, set isDupe to true and break
       if(compareDom(dom, d)){
         isDupe = true;
         break;
       }
     }
     if(!isDupe){
+      // If not, add to noDupes list
       noDupes.push_back(d);
     }
   }
@@ -113,15 +117,12 @@ std::vector<domino> checkDupeDoms(std::vector<domino> _dominoList){
 int main() {
   // Seed RNG
   srand(time(0));
-
   debugger::setDebug(false);
 
   debugger::p("Starting...");
-
   debugger::p("Enter dominos in the format \"x x\" or enter nothing to continue:");
 
   bool isFirst = true;
-
   while(true){
     debugger::log("Getting input for new domino");
     std::string dom;
@@ -139,12 +140,16 @@ int main() {
       continue;
     }
 
+    // Not reading a random signal, check for empty string
     debugger::log("Read \"" + dom + "\"");
     if(dom == ""){
+      // Empty line, either process or quit
       if(dominoList.size() < 1){
+        // No dominos entered, quit
         debugger::p("No dominos entered, quitting");
         return 0;
       } else {
+        // Break and start process
         break;
       }
     } else {
@@ -190,6 +195,26 @@ int main() {
   std::getline(std::cin, starterDoubleDom); 
   start = std::stoi(starterDoubleDom);
 
+  // Check for starter dom
+  int testIdx = 0;
+  bool haveStart = false;
+  for(domino d : dominoList){
+    if(d.getTopNum() == start && d.getBtmNum() == start){
+      // We have the starter, remove from the list and tell the user
+      haveStart = true;
+      break;
+    }
+    testIdx++;
+  }
+
+  // Test for starter double
+  if(haveStart){
+    // Remove the domino at index i, and inform the user they
+    // have the starter domino
+    dominoList.erase(dominoList.begin() + testIdx);
+    debugger::p("You have the double to start, so this has been removed from the list of available dominos");
+  }
+
   debugger::p("Checking for duplicate dominos");
   dominoList = checkDupeDoms(dominoList);
 
@@ -231,15 +256,19 @@ int main() {
   }
 
   //List found permutations
-  debugger::p("Listing permutations:");
+  debugger::p("Permutations list:");
   int i = 0;
   for(std::vector<domino> dList : listPerms){
-    debugger::p("P" + std::to_string(i) + ", Score " + std::to_string(getListScore(dList)) + ", Order: " + getStringList(dList));
+    std::string toPrint = "P";
+    if(i < 10){ toPrint += "0";}
+    toPrint += std::to_string(i) + ", Score " + std::to_string(getListScore(dList)) + ", Order: " + getStringList(dList);
+    debugger::p(toPrint);
     i++;
   }  
   
   //Find best permutation
-  debugger::p("Finding best permutation:");
+  debugger::p("\nFinding best permutation...");
+  std::cout << std::endl;
   std::vector<domino> bestPerm = {};
   for(std::vector<domino> p : listPerms){
     if(getListScore(bestPerm) < getListScore(p)){
@@ -247,7 +276,10 @@ int main() {
     }
   }
 
-  //Print out
   debugger::p("Best permutation has score " + std::to_string(getListScore(bestPerm)) + ", and has order: " + getStringList(bestPerm));
+  //Print out
+  if(haveStart){
+    debugger::p("Since you have the double, don't forget to play it first");
+  }
   return 0;
 }
